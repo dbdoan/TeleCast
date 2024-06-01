@@ -1,6 +1,8 @@
 import asyncio
+import requests
 import logging
 import os
+import platform
 import sys
 
 from dotenv import load_dotenv
@@ -8,11 +10,14 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 
 # Clear console
-os.system("clear")
+if platform.system() == "Windows":
+    os.system("cls")
+else:
+    os.system("clear")
 
 # ------------------------------------ #
 # ------------------------------------ #
-
+# Load environment variables
 load_dotenv()
 
 TG_BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -20,11 +25,10 @@ if TG_BOT_TOKEN:
     print('Bot token is set.')
 else:
     print("Bot token is not set.")
-    sys.exit(1)  # Exit the script if the token is not set
+    sys.exit(1)
 
 # ------------------------------------ #
 # ------------------------------------ #
-
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -35,7 +39,6 @@ logger = logging.getLogger(__name__)
 
 # ------------------------------------ #
 # ------------------------------------ #
-
 # Function to delete a message after a delay
 async def delete_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int, delay: int):
     await asyncio.sleep(delay)
@@ -46,8 +49,6 @@ async def delete_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int, messa
 
 # ------------------------------------ #
 # ------------------------------------ #
-
-
 # Example command handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Hello! Welcome to frognep\'s weather bot!')
@@ -62,7 +63,6 @@ async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ------------------------------------ #
 # ------------------------------------ #
-
 if __name__ == '__main__':
     # Create the Application and pass it your bot's token
     application = ApplicationBuilder().token(TG_BOT_TOKEN).build()
