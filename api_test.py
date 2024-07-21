@@ -6,7 +6,6 @@ import sys
 from dotenv import load_dotenv
 
 # ------------------------------------ #
-# ------------------------------------ #
 def clear_console():
     """Clear the console based on the OS."""
     if os.name == 'nt':  # For Windows
@@ -17,7 +16,6 @@ def clear_console():
 # Clear the console
 clear_console()
 
-# ------------------------------------ #
 # ------------------------------------ #
 # Load environment variables
 load_dotenv()
@@ -32,14 +30,28 @@ else:
 url = f'https://api.tomorrow.io/v4/weather/forecast?location=42.3478,-71.0466&apikey={API_KEY}'
 
 # ------------------------------------ #
-# ------------------------------------ #
 try:
-    response = requests.get(url,timeout=10)
+    response = requests.get(url, timeout=10)
     # Raise an HTTPError for bad responses
-    response.raise_for_status()  
+    response.raise_for_status()
     data = response.json()
-    pretty_data = json.dumps(data, indent=2)
-    print(pretty_data)
+    
+    # Extract specific attributes from the JSON response
+    # For example, let's extract temperature, humidity, and wind speed from the data
+    if 'timelines' in data and 'daily' in data['timelines']:
+        for day in data['timelines']['daily']:
+            date = day['time']
+            temperature = day['values'].get('temperature', 'N/A')
+            humidity = day['values'].get('humidity', 'N/A')
+            wind_speed = day['values'].get('windSpeed', 'N/A')
+            print(f"Date: {date}")
+            print(f"Temperature: {temperature}")
+            print(f"Humidity: {humidity}")
+            print(f"Wind Speed: {wind_speed}")
+            print("---------------")
+    else:
+        print("Unexpected JSON structure")
+
 except requests.exceptions.HTTPError as errh:
     print("HTTP Error:", errh)
 except requests.exceptions.ConnectionError as errc:
