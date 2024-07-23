@@ -3,18 +3,10 @@ import os
 import requests
 import sys
 
+from clear import clean
 from dotenv import load_dotenv
 
-# ------------------------------------ #
-def clear_console():
-    """Clear the console based on the OS."""
-    if os.name == 'nt':  # For Windows
-        os.system('cls')
-    else:  # For macOS and Linux
-        os.system('clear')
-
-# Clear the console
-clear_console()
+clean()
 
 # ------------------------------------ #
 # Load environment variables
@@ -39,7 +31,6 @@ try:
     print(data)
 
     # print(data['timelines'].items())
-
     
     # Extract specific attributes from the JSON response
     # For example, let's extract temperature, humidity, and wind speed from the data

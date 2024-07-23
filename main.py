@@ -1,19 +1,15 @@
-import asyncio
-import requests
+# import asyncio
+# import requests
 import logging
 import os
-import platform
 import sys
 
+from clear import clean
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, ConversationHandler, filters, MessageHandler
 
-# Clear console
-if platform.system() == "Windows":
-    os.system("cls")
-else:
-    os.system("clear")
+clean()
 
 # ------------------------------------ #
 # ------------------------------------ #
@@ -47,16 +43,15 @@ logger = logging.getLogger(__name__)
 #     except Exception as e:
 #         logging.error(f"Error deleting message: {e}")
 
+ZIPCODE = range(1)
 
+# ------------------------------------ #
+# ------------------------------------ #
 # Function to escape text for MarkdownV2
 def escape_markdown_v2(text: str) -> str:
     escape_chars = r'\*_`\[\]()~>#+-=|{}.!'
     return ''.join(f'\\{c}' if c in escape_chars else c for c in text)
 
-ZIPCODE = range(1)
-
-# ------------------------------------ #
-# ------------------------------------ #
 # Example command handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Hello! Welcome to Danny\'s Telegram weather bot!\nUse /getweather to get weather information in your area!')
@@ -83,12 +78,6 @@ async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Operation cancelled!")
     return ConversationHandler.END
-
-
-# ------------------------------------ #
-# ------------------------------------ #
-
-
 
 # ------------------------------------ #
 # ------------------------------------ #
