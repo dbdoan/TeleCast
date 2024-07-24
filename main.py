@@ -5,7 +5,9 @@ import os
 import sys
 
 from clear import clean
+from datetime import datetime
 from dotenv import load_dotenv
+import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, ConversationHandler, filters, MessageHandler
 
@@ -17,10 +19,13 @@ clean()
 load_dotenv()
 
 TG_BOT_TOKEN = os.getenv('BOT_TOKEN')
-if TG_BOT_TOKEN:
-    print('Bot token is set.')
+API_KEY = os.getenv('WEATHER_API_KEY')
+if TG_BOT_TOKEN and API_KEY:
+    print('Both tokens is set.')
+elif TG_BOT_TOKEN and not (API_KEY):
+    print("Only TG_BOT_TOKEN set")
 else:
-    print("Bot token is not set.")
+    print("Only WEATHER_API_KEY token set")
     sys.exit(1)
 
 # ------------------------------------ #
@@ -32,6 +37,36 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+# ------------------------------------ #
+# ------------------------------------ #
+def obtain_weather(zip):
+    try:
+        url = f'https://api.tomorrow.io/v4/weather/realtime?location={zip} US]&apikey={API_KEY}'
+        response = requests.get(url, timeout=10)
+        # Raise an HTTPError for bad responses
+        response.raise_for_status()
+        data = response.json()
+        return data
+
+    except requests.exceptions.HTTPError as errh:
+        print("HTTP Error:", errh)
+    except requests.exceptions.ConnectionError as errc:
+        print("Error Connecting:", errc)
+    except requests.exceptions.Timeout as errt:
+        print("Timeout Error:", errt)
+    except requests.exceptions.RequestException as err:
+        print("Something went wrong:", err)
+
+
+def iso_to_mdy(iso_time):
+    # converting the iso-time format output by API to a date-time object
+    iso_obj = datetime.strptime(iso_time, '%Y-%m-%dT%H:%M:%SZ')
+
+    # converting date-time object to desired format
+    formatted_date = iso_obj.strftime("%m-%d-%Y %H:%M %p")
+
+    return formatted_date
 
 # ------------------------------------ #
 # ------------------------------------ #
@@ -59,7 +94,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Example message handler
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = await update.message.reply_text("pong!")
+    await update.message.reply_text("pong!")
     # asyncio.create_task(delete_message(context, update.message.chat_id, update.message.message_id, 3))
     # asyncio.create_task(delete_message(context, update.message.chat_id, message.message_id, 10))
 
@@ -71,7 +106,17 @@ async def start_getweather(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     zipcode = update.message.text
-    await update.message.reply_text(f"Your ZIP code is {zipcode}.")
+    info = obtain_weather(zipcode)
+
+    time = iso_to_mdy(info["data"]["time"])
+
+    location = info['location']['name']
+
+
+
+    # await update.message.reply_text(f"Your ZIP code is {zipcode}.")
+    await update.message.reply_text(f"Weather data as of {time} UTC:\n"
+                                    f"Location: {location}")
     return ConversationHandler.END
 
 
