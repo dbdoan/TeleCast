@@ -28,7 +28,7 @@ try:
     response.raise_for_status()
     data = response.json()
 
-    print(data['location'])
+    print(data['data'])
 
     # print(data['timelines'].items())
     
