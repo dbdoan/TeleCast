@@ -108,15 +108,16 @@ async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     zipcode = update.message.text
     info = obtain_weather(zipcode)
 
-    time = iso_to_mdy(info["data"]["time"])
+    time = escape_markdown_v2(iso_to_mdy(info["data"]["time"]))
 
     location = info['location']['name']
 
 
 
     # await update.message.reply_text(f"Your ZIP code is {zipcode}.")
-    await update.message.reply_text(f"Weather data as of {time} UTC:\n"
-                                    f"Location: {location}")
+    await update.message.reply_text(f"__***Weather data as of {time} UTC***__:\n"
+                                    "\n"
+                                    f"***Location***: {location}",parse_mode="MarkdownV2")
     return ConversationHandler.END
 
 
