@@ -1,11 +1,11 @@
-# import asyncio
-# import requests
+import asyncio
 import logging
 import os
 import sys
 
 from clear import clean
 from datetime import datetime
+from delete_message import delete_message
 from dotenv import load_dotenv
 import requests
 from telegram import Update
@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 # ------------------------------------ #
 # ------------------------------------ #
+# Data functions
 def obtain_weather(zip):
     try:
         url = f'https://api.tomorrow.io/v4/weather/realtime?location={zip} US]&apikey={API_KEY}'
@@ -70,14 +71,7 @@ def iso_to_mdy(iso_time):
 
 # ------------------------------------ #
 # ------------------------------------ #
-# Function to delete a message after a delay
-# async def delete_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int, delay: int):
-#     await asyncio.sleep(delay)
-#     try:
-#         await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
-#     except Exception as e:
-#         logging.error(f"Error deleting message: {e}")
-
+# Global variables for conversation
 ZIPCODE = range(1)
 
 # ------------------------------------ #
@@ -91,18 +85,16 @@ def escape_markdown_v2(text: str) -> str:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Hello! Welcome to Danny\'s Telegram weather bot!\nUse /getweather to get weather information in your area!')
 
-
 # Example message handler
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("pong!")
-    # asyncio.create_task(delete_message(context, update.message.chat_id, update.message.message_id, 3))
-    # asyncio.create_task(delete_message(context, update.message.chat_id, message.message_id, 10))
+    message = await update.message.reply_text("pong!")
+    asyncio.create_task(delete_message(context, update.message.chat_id, update.message.message_id, 3))
+    asyncio.create_task(delete_message(context, update.message.chat_id, message.message_id, 10))
 
 
 async def start_getweather(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("What is your zipcode?")
     return ZIPCODE
-
 
 async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     zipcode = update.message.text
@@ -112,14 +104,11 @@ async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     location = info['location']['name']
 
-
-
     # await update.message.reply_text(f"Your ZIP code is {zipcode}.")
     await update.message.reply_text(f"__***Weather data as of {time} UTC***__:\n"
                                     "\n"
                                     f"***Location***: {location}",parse_mode="MarkdownV2")
     return ConversationHandler.END
-
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Operation cancelled!")
