@@ -19,7 +19,7 @@ else:
 
 # ------------------------------------ #
 try:
-    url = f'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/-122.103,37.8936,9.32,0/300x200?access_token={MAP_KEY}'
+    url = f'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/[longitude_lattitude]/300x200?access_token={MAP_KEY}'
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     # Save the image

@@ -104,6 +104,8 @@ async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     time = iso_to_mdy(info['data']['time'])
     location = info['location']['name']
 
+    # Sending the weather image
+    # await context.bot.send_photo(chat_id=update.message.chat_id, photo=)
     # await update.message.reply_text(f"Your ZIP code is {zipcode}.")
     await update.message.reply_text(f"__***Weather data as of {escape_markdown_v2(time)} UTC***__:\n"
                                     "\n"
