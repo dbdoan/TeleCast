@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, ConversationHandler, filters, MessageHandler
+from urllib.parse import quote
 
 clean()
 
@@ -19,13 +20,19 @@ clean()
 load_dotenv()
 
 TG_BOT_TOKEN = os.getenv('BOT_TOKEN')
-API_KEY = os.getenv('WEATHER_API_KEY')
-if TG_BOT_TOKEN and API_KEY:
-    print('Both tokens are set.')
-elif TG_BOT_TOKEN and not API_KEY:
-    print("Only TG_BOT_TOKEN is set")
+TOMORROW_IO_TOKEN = os.getenv('TOMORROW_TOKEN')
+MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
+
+# Check if all tokens are set
+if TG_BOT_TOKEN and TOMORROW_IO_TOKEN and MAPBOX_TOKEN:
+    print('All tokens are set.')
 else:
-    print("Only WEATHER_API_KEY token is set")
+    if not TG_BOT_TOKEN:
+        print("BOT_TOKEN is not set")
+    if not TOMORROW_IO_TOKEN:
+        print("TOMORROW_TOKEN is not set")
+    if not MAPBOX_TOKEN:
+        print("MAPBOX_TOKEN is not set")
     sys.exit(1)
 
 # ------------------------------------ #
@@ -43,7 +50,7 @@ logger = logging.getLogger(__name__)
 # Data functions
 def obtain_weather(zip):
     try:
-        url = f'https://api.tomorrow.io/v4/weather/realtime?location={zip},US&apikey={API_KEY}'
+        url = f'https://api.tomorrow.io/v4/weather/realtime?location={zip},US&apikey={TOMORROW_IO_TOKEN}'
         response = requests.get(url, timeout=10)
         # Raise an HTTPError for bad responses
         response.raise_for_status()
@@ -60,6 +67,25 @@ def obtain_weather(zip):
         print("Something went wrong:", err)
     return None
 
+def obtain_coordinates(address_line_1):
+    try:
+        url = f'https://api.mapbox.com/search/geocode/v6/forward?q={address_line_1}&proximity=ip&types=address&&access_token={MAPBOX_TOKEN}'
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        coordinates = (data['features'][0]['geometry']['coordinates'])
+
+        return coordinates
+
+    except requests.exceptions.HTTPError as errh:
+        print("HTTP Error: ", errh)
+    except requests.exceptions.ConnectionError as errc:
+        print("Connection Error: ", errc)
+    except requests.exceptions.Timeout as errt:
+        print("Timeout Error: ", errt)
+    except requests.exceptions.RequestException as err:
+        print("Something went wrong: ", err)
+
 def iso_to_mdy(iso_time):
     # converting the iso-time format output by API to a date-time object
     iso_obj = datetime.strptime(iso_time, '%Y-%m-%dT%H:%M:%SZ')
@@ -70,7 +96,7 @@ def iso_to_mdy(iso_time):
 # ------------------------------------ #
 # ------------------------------------ #
 # Global variables for conversation
-ADDRESS_LINE_1, CITY, STATE, ZIPCODE = range(4)
+ADDRESS_LINE_1, CITY, STATE, ZIPCODE, CONFIRM = range(5)
 
 # ------------------------------------ #
 # ------------------------------------ #
@@ -121,8 +147,8 @@ async def receive_state(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     zipcode = update.message.text
-
     context.user_data['zipcode'] = zipcode
+
     address_line_1 = context.user_data.get('address_line_1', '')
     city = context.user_data.get('city', '')
     state = context.user_data.get('state', '')
@@ -135,11 +161,11 @@ async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     f"State: {state.upper()}\n"
                     f"Zipcode: {zipcode}\n"
                     "\n"
-                    "If anything is incorrect, you may correct entry by using /restart.\n"
-                    "Otherwise, click /proceed to output the weather data in your area.")
+                    "If anything is incorrect, you may correct entry by using /restart\.\n"
+                    "Otherwise, click /proceed to output the weather data in your area\.")
     await update.message.reply_text(text=format_message, parse_mode="MarkdownV2")
 
-    return ConversationHandler.END
+    return CONFIRM
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Operation cancelled!")
@@ -148,6 +174,26 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Restarting the process. Please enter address line 1:")
     return ADDRESS_LINE_1
+
+async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    address_line_1 = context.user_data.get('address_line_1', '')
+    city = context.user_data.get('city', '')
+    state = context.user_data.get('state', '')
+    zipcode = context.user_data.get('zipcode', '')
+
+    user_full_address = f"{address_line_1} {city} {state} {zipcode} United States"
+    formatted_address = quote(user_full_address)
+
+    user_coordinates = obtain_coordinates(formatted_address)
+    
+    # u_c[0] = longitude, u_c[1] = latitude
+    formatted_coordinates = escape_markdown_v2(f"{user_coordinates[0]}, {user_coordinates[1]}")
+    if user_coordinates:
+        await update.message.reply_text(f"Coordinates: {formatted_coordinates}", parse_mode="MarkdownV2")
+    else:
+        await update.message.reply_text("Failed to fetch coordinates data. Please try again later.", parse_mode="MarkdownV2")
+
+    return ConversationHandler.END
 
 # ------------------------------------ #
 # ------------------------------------ #
@@ -166,6 +212,7 @@ if __name__ == '__main__':
             CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_city)],
             STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_state)],
             ZIPCODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_zipcode)],
+            CONFIRM: [CommandHandler('restart', restart), CommandHandler('proceed', proceed)]
         },
         fallbacks=[CommandHandler('cancel', cancel), CommandHandler('restart', restart)]
     )
