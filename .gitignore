@@ -1,7 +1,7 @@
-/test
+test/
 
-/__pycache__
+__pycache__/
 
-/.venv
+.venv/
 
 geocoding_api_test.py
