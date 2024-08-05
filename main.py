@@ -191,11 +191,11 @@ async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     converted_date_time = iso_to_mdy(iso_date_time)
     markdown_date_time = escape_markdown_v2(converted_date_time)
 
-    # u_c[0] = longitude, u_c[1] = latitude
-    formatted_coordinates = escape_markdown_v2(f"{user_coordinates[0]}, {user_coordinates[1]}")
+    # u_c[0] = latitude, u_c[1] = longitude
+    formatted_coordinates = escape_markdown_v2(f"{user_coordinates[1]}, {user_coordinates[0]}")
 
     if user_coordinates:
-        await update.message.reply_text(f"__*Weather data as of {markdown_date_time}*__\n"
+        await update.message.reply_text(f"__*Weather data as of {markdown_date_time} UTC*__\n"
                                         f"Coordinates: {formatted_coordinates}", parse_mode="MarkdownV2")
     else:
         await update.message.reply_text("Failed to fetch coordinates data. Please try again later.", parse_mode="MarkdownV2")
