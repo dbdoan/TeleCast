@@ -21,11 +21,11 @@ load_dotenv()
 TG_BOT_TOKEN = os.getenv('BOT_TOKEN')
 API_KEY = os.getenv('WEATHER_API_KEY')
 if TG_BOT_TOKEN and API_KEY:
-    print('Both tokens is set.')
-elif TG_BOT_TOKEN and not (API_KEY):
-    print("Only TG_BOT_TOKEN set")
+    print('Both tokens are set.')
+elif TG_BOT_TOKEN and not API_KEY:
+    print("Only TG_BOT_TOKEN is set")
 else:
-    print("Only WEATHER_API_KEY token set")
+    print("Only WEATHER_API_KEY token is set")
     sys.exit(1)
 
 # ------------------------------------ #
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # Data functions
 def obtain_weather(zip):
     try:
-        url = f'https://api.tomorrow.io/v4/weather/realtime?location={zip} US]&apikey={API_KEY}'
+        url = f'https://api.tomorrow.io/v4/weather/realtime?location={zip},US&apikey={API_KEY}'
         response = requests.get(url, timeout=10)
         # Raise an HTTPError for bad responses
         response.raise_for_status()
@@ -58,21 +58,19 @@ def obtain_weather(zip):
         print("Timeout Error:", errt)
     except requests.exceptions.RequestException as err:
         print("Something went wrong:", err)
-
+    return None
 
 def iso_to_mdy(iso_time):
     # converting the iso-time format output by API to a date-time object
     iso_obj = datetime.strptime(iso_time, '%Y-%m-%dT%H:%M:%SZ')
-
     # converting date-time object to desired format
     formatted_date = iso_obj.strftime("%m-%d-%Y %H:%M %p")
-
     return formatted_date
 
 # ------------------------------------ #
 # ------------------------------------ #
 # Global variables for conversation
-ZIPCODE = range(1)
+ADDRESS_LINE_1, CITY, STATE, ZIPCODE = range(4)
 
 # ------------------------------------ #
 # ------------------------------------ #
@@ -91,30 +89,65 @@ async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     asyncio.create_task(delete_message(context, update.message.chat_id, update.message.message_id, 3))
     asyncio.create_task(delete_message(context, update.message.chat_id, message.message_id, 10))
 
-
 async def start_getweather(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("What is your zipcode?")
+    await update.message.reply_text("Enter address line 1: ")
+    return ADDRESS_LINE_1
+
+async def receive_add_line_1(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    address_line_1 = update.message.text
+    context.user_data['address_line_1'] = address_line_1
+
+    await update.message.reply_text(f"Address Line 1 is set to: {address_line_1.title()}")
+    await update.message.reply_text("Enter city: ")
+    return CITY
+
+async def receive_city(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    city = update.message.text
+    context.user_data['city'] = city
+
+    await update.message.reply_text(f"City is set to: {city.capitalize()}")
+    await update.message.reply_text("Enter state (CA, TX, etc.): ")
+
+    return STATE
+
+async def receive_state(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    state = update.message.text
+    context.user_data['state'] = state
+
+    await update.message.reply_text(f"State is set to: {state.upper()}")
+    await update.message.reply_text("Enter zipcode: ")
+
     return ZIPCODE
 
 async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     zipcode = update.message.text
-    info = obtain_weather(zipcode)
 
-    # time = escape_markdown_v2(iso_to_mdy(info["data"]["time"]))
-    time = iso_to_mdy(info['data']['time'])
-    location = info['location']['name']
+    context.user_data['zipcode'] = zipcode
+    address_line_1 = context.user_data.get('address_line_1', '')
+    city = context.user_data.get('city', '')
+    state = context.user_data.get('state', '')
 
-    # Sending the weather image
-    # await context.bot.send_photo(chat_id=update.message.chat_id, photo=)
-    # await update.message.reply_text(f"Your ZIP code is {zipcode}.")
-    await update.message.reply_text(f"__***Weather data as of {escape_markdown_v2(time)} UTC***__:\n"
-                                    "\n"
-                                    f"***Location***: {location}",parse_mode="MarkdownV2")
+    await update.message.reply_text(f"Zipcode is set to: {zipcode}")
+
+    format_message = ("__*Here is your entered data*__\n"
+                    f"Address Line 1: {address_line_1.title()}\n"
+                    f"City: {city.capitalize()}\n"
+                    f"State: {state.upper()}\n"
+                    f"Zipcode: {zipcode}\n"
+                    "\n"
+                    "If anything is incorrect, you may correct entry by using /restart.\n"
+                    "Otherwise, click /proceed to output the weather data in your area.")
+    await update.message.reply_text(text=format_message, parse_mode="MarkdownV2")
+
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Operation cancelled!")
     return ConversationHandler.END
+
+async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("Restarting the process. Please enter address line 1:")
+    return ADDRESS_LINE_1
 
 # ------------------------------------ #
 # ------------------------------------ #
@@ -129,9 +162,12 @@ if __name__ == '__main__':
     weather_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('getweather', start_getweather)], 
         states={
-            ZIPCODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_zipcode)]
+            ADDRESS_LINE_1: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_add_line_1)],
+            CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_city)],
+            STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_state)],
+            ZIPCODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_zipcode)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler('cancel', cancel), CommandHandler('restart', restart)]
     )
 
     application.add_handler(weather_conv_handler)
