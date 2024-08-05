@@ -48,9 +48,9 @@ logger = logging.getLogger(__name__)
 # ------------------------------------ #
 # ------------------------------------ #
 # Data functions
-def obtain_weather(zip):
+def obtain_weather(longitude, latitude):
     try:
-        url = f'https://api.tomorrow.io/v4/weather/realtime?location={zip},US&apikey={TOMORROW_IO_TOKEN}'
+        url = f'https://api.tomorrow.io/v4/weather/forecast?location={longitude},{latitude}&apikey={TOMORROW_IO_TOKEN}'
         response = requests.get(url, timeout=10)
         # Raise an HTTPError for bad responses
         response.raise_for_status()
@@ -185,11 +185,18 @@ async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     formatted_address = quote(user_full_address)
 
     user_coordinates = obtain_coordinates(formatted_address)
-    
+
+    weather_data = obtain_weather(user_coordinates[0], user_coordinates[1])
+    iso_date_time = weather_data["timelines"]["minutely"][0]["time"]
+    converted_date_time = iso_to_mdy(iso_date_time)
+    markdown_date_time = escape_markdown_v2(converted_date_time)
+
     # u_c[0] = longitude, u_c[1] = latitude
     formatted_coordinates = escape_markdown_v2(f"{user_coordinates[0]}, {user_coordinates[1]}")
+
     if user_coordinates:
-        await update.message.reply_text(f"Coordinates: {formatted_coordinates}", parse_mode="MarkdownV2")
+        await update.message.reply_text(f"__*Weather data as of {markdown_date_time}*__\n"
+                                        f"Coordinates: {formatted_coordinates}", parse_mode="MarkdownV2")
     else:
         await update.message.reply_text("Failed to fetch coordinates data. Please try again later.", parse_mode="MarkdownV2")
 
