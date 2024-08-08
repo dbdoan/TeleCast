@@ -11,6 +11,7 @@ import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, ConversationHandler, filters, MessageHandler
 from urllib.parse import quote
+from weather_codes import weather_codes
 
 clean()
 
@@ -24,9 +25,7 @@ TOMORROW_IO_TOKEN = os.getenv('TOMORROW_TOKEN')
 MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
 
 # Check if all tokens are set
-if TG_BOT_TOKEN and TOMORROW_IO_TOKEN and MAPBOX_TOKEN:
-    print('All tokens are set.')
-else:
+if not TG_BOT_TOKEN or not TOMORROW_IO_TOKEN or not MAPBOX_TOKEN:
     if not TG_BOT_TOKEN:
         print("BOT_TOKEN is not set")
     if not TOMORROW_IO_TOKEN:
@@ -34,6 +33,8 @@ else:
     if not MAPBOX_TOKEN:
         print("MAPBOX_TOKEN is not set")
     sys.exit(1)
+else:
+    print('All tokens are set.')
 
 # ------------------------------------ #
 # ------------------------------------ #
@@ -48,6 +49,23 @@ logger = logging.getLogger(__name__)
 # ------------------------------------ #
 # ------------------------------------ #
 # Data functions
+
+def extra_uv_info(uv_index):
+    if uv_index >= 0 and uv_index <= 2:
+        message = "Low levels, no sun protection needed."
+        return message
+    elif uv_index > 2 and uv_index <= 7:
+        message = "Moderate to high levels, consider protecting your skin."
+        return message
+    elif uv_index > 7 and uv_index <= 9:
+        message = "Very high levels, everyone should protect their skin."
+    elif uv_index >= 11:
+        message = "Extreme risk of harm, avoid outdoor activities and take precautions if you must go outside."
+        return message
+
+def obtain_status(code):
+    return weather_codes["weatherCode"].get(str(code), "Unknown")
+
 def obtain_weather(longitude, latitude):
     try:
         url = f'https://api.tomorrow.io/v4/weather/forecast?location={longitude},{latitude}&apikey={TOMORROW_IO_TOKEN}'
@@ -92,6 +110,11 @@ def iso_to_mdy(iso_time):
     # converting date-time object to desired format
     formatted_date = iso_obj.strftime("%m-%d-%Y %H:%M %p")
     return formatted_date
+
+def c_to_f(celcius_temperature):
+    converted_f = (9/5 * celcius_temperature) + 32
+
+    return converted_f
 
 # ------------------------------------ #
 # ------------------------------------ #
@@ -186,17 +209,29 @@ async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     user_coordinates = obtain_coordinates(formatted_address)
 
-    weather_data = obtain_weather(user_coordinates[0], user_coordinates[1])
+    # Latitude, Longitude
+    weather_data = obtain_weather(user_coordinates[1], user_coordinates[0])
+    # print(weather_data)
     iso_date_time = weather_data["timelines"]["minutely"][0]["time"]
     converted_date_time = iso_to_mdy(iso_date_time)
     markdown_date_time = escape_markdown_v2(converted_date_time)
 
-    # u_c[0] = latitude, u_c[1] = longitude
-    formatted_coordinates = escape_markdown_v2(f"{user_coordinates[1]}, {user_coordinates[0]}")
+    user_dewpoint_c = weather_data["timelines"]["minutely"][0]["values"]["dewPoint"]
+    user_dewpoint_f = c_to_f(user_dewpoint_c)
+    user_temperature_c = weather_data["timelines"]["minutely"][0]["values"]["temperature"]
+    user_temperature_f = c_to_f(user_temperature_c)
+    user_precipitation = weather_data["timelines"]["minutely"][0]["values"]["precipitationProbability"]
+    user_status = weather_data["timelines"]["minutely"][0]["values"]["weatherCode"]
+    user_uv = weather_data["timelines"]["minutely"][0]["values"]["uvIndex"]
 
     if user_coordinates:
         await update.message.reply_text(f"__*Weather data as of {markdown_date_time} UTC*__\n"
-                                        f"Coordinates: {formatted_coordinates}", parse_mode="MarkdownV2")
+                                        "\n"
+                                        f"🌤️ Condition: {obtain_status(user_status)}\n"
+                                        f"☔ Chance of Rain: {str(user_precipitation)}%\n"
+                                        f"💧 Dew Point: {escape_markdown_v2(str(user_dewpoint_c))}°C / {escape_markdown_v2(str(round(user_dewpoint_f, 2)))}°F\n"
+                                        f"🌡️ Temperature: {escape_markdown_v2(str(user_temperature_c))}°C / {escape_markdown_v2(str(round(user_temperature_f, 2)))}°F\n"
+                                        f"🕶️ UV Index: {user_uv} \- \({escape_markdown_v2(extra_uv_info(user_uv))}\)", parse_mode="MarkdownV2")
     else:
         await update.message.reply_text("Failed to fetch coordinates data. Please try again later.", parse_mode="MarkdownV2")
 
