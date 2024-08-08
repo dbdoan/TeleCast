@@ -138,6 +138,11 @@ async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     asyncio.create_task(delete_message(context, update.message.chat_id, update.message.message_id, 3))
     asyncio.create_task(delete_message(context, update.message.chat_id, message.message_id, 10))
 
+# Example message handler
+async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("To reach out for inquiries or concerns:\n"
+                                              "Telegram: @dbdoan_dev")
+
 async def start_getweather(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Enter address line 1: ")
     return ADDRESS_LINE_1
@@ -246,6 +251,7 @@ if __name__ == '__main__':
     # Add handlers
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('ping', ping))
+    application.add_handler(CommandHandler('contact', contact))
 
     weather_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('getweather', start_getweather)], 
