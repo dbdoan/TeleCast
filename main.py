@@ -8,8 +8,8 @@ from datetime import datetime
 from delete_message import delete_message
 from dotenv import load_dotenv
 import requests
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, ConversationHandler, filters, MessageHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes, CommandHandler, ConversationHandler, filters, MessageHandler
 from urllib.parse import quote
 from weather_codes import weather_codes
 
@@ -49,19 +49,20 @@ logger = logging.getLogger(__name__)
 # ------------------------------------ #
 # ------------------------------------ #
 # Data functions
+def user_location_img(longitude, latitude, MAPBOX_TOKEN):
+    url = f'https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/static/{longitude},{latitude},{16},0/{300}x{200}?access_token={MAPBOX_TOKEN}'
+    return url
 
 def extra_uv_info(uv_index):
     if uv_index >= 0 and uv_index <= 2:
-        message = "Low levels, no sun protection needed."
-        return message
+        message = "Low UV levels, no sun protection needed."
     elif uv_index > 2 and uv_index <= 7:
-        message = "Moderate to high levels, consider protecting your skin."
-        return message
+        message = "Moderate to high UV levels, consider protecting your skin."
     elif uv_index > 7 and uv_index <= 9:
-        message = "Very high levels, everyone should protect their skin."
+        message = "Very high UV levels, everyone should protect their skin."
     elif uv_index >= 11:
         message = "Extreme risk of harm, avoid outdoor activities and take precautions if you must go outside."
-        return message
+    return message
 
 def obtain_status(code):
     return weather_codes["weatherCode"].get(str(code), "Unknown")
@@ -203,6 +204,19 @@ async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Restarting the process. Please enter address line 1:")
     return ADDRESS_LINE_1
 
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    outro_message_correct = "I hope this bot helped you today 😎, use /getweather to use again."
+    outro_message_incorrect = "I am sorry this bot did not meet your expectations. Please forward the error[s] to @dbdoan_dev so we may prompt fix the issue!"
+
+    if query.data == 'yes_correct':
+        await context.bot.send_message(chat_id=query.message.chat_id, text=f"{outro_message_correct}")
+    elif query.data == 'no_incorrect':
+        await context.bot.send_message(chat_id=query.message.chat_id, text=f"{outro_message_incorrect}")
+        
+
 async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     address_line_1 = context.user_data.get('address_line_1', '')
     city = context.user_data.get('city', '')
@@ -229,14 +243,26 @@ async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_status = weather_data["timelines"]["minutely"][0]["values"]["weatherCode"]
     user_uv = weather_data["timelines"]["minutely"][0]["values"]["uvIndex"]
 
+    url = user_location_img(user_coordinates[0], user_coordinates[1], MAPBOX_TOKEN)
+    response = requests.get(url)
+
     if user_coordinates:
-        await update.message.reply_text(f"__*Weather data as of {markdown_date_time} UTC*__\n"
-                                        "\n"
-                                        f"🌤️ Condition: {obtain_status(user_status)}\n"
-                                        f"☔ Chance of Rain: {str(user_precipitation)}%\n"
-                                        f"💧 Dew Point: {escape_markdown_v2(str(user_dewpoint_c))}°C / {escape_markdown_v2(str(round(user_dewpoint_f, 2)))}°F\n"
-                                        f"🌡️ Temperature: {escape_markdown_v2(str(user_temperature_c))}°C / {escape_markdown_v2(str(round(user_temperature_f, 2)))}°F\n"
-                                        f"🕶️ UV Index: {user_uv} \- \({escape_markdown_v2(extra_uv_info(user_uv))}\)", parse_mode="MarkdownV2")
+        keyboard = [
+            [InlineKeyboardButton("Yes, this is correct.", callback_data=f"yes_correct")],
+            [InlineKeyboardButton("No, this is not correct.", callback_data=f"no_incorrect")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_photo(photo=response.content, 
+                                        caption=
+                                        f"__*Weather data as of {markdown_date_time} UTC*__\n"
+                                            "\n"
+                                            f"🌤️ Condition: {obtain_status(user_status)}\n"
+                                            f"☔ Chance of Rain: {str(user_precipitation)}%\n"
+                                            f"💧 Dew Point: {escape_markdown_v2(str(user_dewpoint_c))}°C / {escape_markdown_v2(str(round(user_dewpoint_f, 2)))}°F\n"
+                                            f"🌡️ Temperature: {escape_markdown_v2(str(user_temperature_c))}°C / {escape_markdown_v2(str(round(user_temperature_f, 2)))}°F\n"
+                                            f"🕶️ UV Index: {user_uv}\n\n\({escape_markdown_v2(extra_uv_info(user_uv))}\)", 
+                                            parse_mode="MarkdownV2", reply_markup=reply_markup)
     else:
         await update.message.reply_text("Failed to fetch coordinates data. Please try again later.", parse_mode="MarkdownV2")
 
@@ -252,6 +278,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('ping', ping))
     application.add_handler(CommandHandler('contact', contact))
+    application.add_handler(CallbackQueryHandler(button_handler))
 
     weather_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('getweather', start_getweather)], 
