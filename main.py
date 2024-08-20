@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 
-from clear import clean
 from datetime import datetime
 from delete_message import delete_message
 from dotenv import load_dotenv
@@ -12,8 +11,6 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes, CommandHandler, ConversationHandler, filters, MessageHandler
 from urllib.parse import quote
 from weather_codes import weather_codes
-
-clean()
 
 # ------------------------------------ #
 # ------------------------------------ #
