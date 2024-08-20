@@ -189,7 +189,14 @@ async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     "\n"
                     "If anything is incorrect, you may correct entry by using /restart\.\n"
                     "Otherwise, click /proceed to output the weather data in your area\.")
-    await update.message.reply_text(text=format_message, parse_mode="MarkdownV2")
+    
+    keyboard = [
+        [InlineKeyboardButton("Proceed", callback_data='proceed')],
+        [InlineKeyboardButton("Restart", callback_data='restart')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard
+                                        )
+    await update.message.reply_text(text=format_message, parse_mode="MarkdownV2", reply_markup=reply_markup)
 
     return CONFIRM
 
@@ -212,7 +219,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=query.message.chat_id, text=f"{outro_message_correct}")
     elif query.data == 'no_incorrect':
         await context.bot.send_message(chat_id=query.message.chat_id, text=f"{outro_message_incorrect}")
-        
+    elif query.data == 'proceed':
+        await proceed(update, context)
+    elif query.data == 'restart':
+        await restart(update, context)
 
 async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     address_line_1 = context.user_data.get('address_line_1', '')
