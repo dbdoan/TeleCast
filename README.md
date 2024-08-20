@@ -9,3 +9,6 @@ A Telegram bot which outputs weather data in your vicinity using the Tomorrow.io
 | BOT_TOKEN             | string | Obtain bot-token through Telegram; @BotFather |
 | MAPBOX_TOKEN          | string | API Key from MapBox website.                  |
 | TOMORROW_TOKEN        | string | API Key from Tomorrow.io website.             |
+
+## Preview
+![Preview of bot](https://i.ibb.co/P9dSSzP/PNG-image-1-A89-DD58-E0-F9-1.png)
