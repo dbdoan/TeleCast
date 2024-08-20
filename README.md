@@ -1,7 +1,7 @@
 # Telegram Weather Bot
 
 ## About
-Creating a Telegram bot which outputs weather data in your vicinity using the Tomorrow.io and MapBox APIs.
+A Telegram bot which outputs weather data in your vicinity using the Tomorrow.io and MapBox APIs.
 
 ## Environmental Variables
 | Name                  | Type   |  Description                                  |
