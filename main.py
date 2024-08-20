@@ -13,7 +13,6 @@ from urllib.parse import quote
 from weather_codes import weather_codes
 
 # ------------------------------------ #
-# ------------------------------------ #
 # Load environment variables
 load_dotenv()
 
@@ -34,7 +33,6 @@ else:
     print('All tokens are set.')
 
 # ------------------------------------ #
-# ------------------------------------ #
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -43,7 +41,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# ------------------------------------ #
 # ------------------------------------ #
 # Data functions
 def user_location_img(longitude, latitude, MAPBOX_TOKEN):
@@ -68,7 +65,6 @@ def obtain_weather(longitude, latitude):
     try:
         url = f'https://api.tomorrow.io/v4/weather/forecast?location={longitude},{latitude}&apikey={TOMORROW_IO_TOKEN}'
         response = requests.get(url, timeout=10)
-        # Raise an HTTPError for bad responses
         response.raise_for_status()
         data = response.json()
         return data
@@ -90,9 +86,7 @@ def obtain_coordinates(address_line_1):
         response.raise_for_status()
         data = response.json()
         coordinates = (data['features'][0]['geometry']['coordinates'])
-
         return coordinates
-
     except requests.exceptions.HTTPError as errh:
         print("HTTP Error: ", errh)
     except requests.exceptions.ConnectionError as errc:
@@ -103,43 +97,35 @@ def obtain_coordinates(address_line_1):
         print("Something went wrong: ", err)
 
 def iso_to_mdy(iso_time):
-    # converting the iso-time format output by API to a date-time object
     iso_obj = datetime.strptime(iso_time, '%Y-%m-%dT%H:%M:%SZ')
-    # converting date-time object to desired format
     formatted_date = iso_obj.strftime("%m-%d-%Y %H:%M %p")
     return formatted_date
 
 def c_to_f(celcius_temperature):
     converted_f = (9/5 * celcius_temperature) + 32
-
     return converted_f
 
-# ------------------------------------ #
 # ------------------------------------ #
 # Global variables for conversation
 ADDRESS_LINE_1, CITY, STATE, ZIPCODE, CONFIRM = range(5)
 
-# ------------------------------------ #
 # ------------------------------------ #
 # Function to escape text for MarkdownV2
 def escape_markdown_v2(text: str) -> str:
     escape_chars = r'\*_`\[\]()~>#+-=|{}.!'
     return ''.join(f'\\{c}' if c in escape_chars else c for c in text)
 
-# Example command handler
+# Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Hello! Welcome to Danny\'s Telegram weather bot!\nUse /getweather to get weather information in your area!')
 
-# Example message handler
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = await update.message.reply_text("pong!")
     asyncio.create_task(delete_message(context, update.message.chat_id, update.message.message_id, 3))
     asyncio.create_task(delete_message(context, update.message.chat_id, message.message_id, 10))
 
-# Example message handler
 async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("To reach out for inquiries or concerns:\n"
-                                              "Telegram: @dbdoan_dev")
+    await update.message.reply_text("To reach out for inquiries or concerns:\nTelegram: @dbdoan_dev")
 
 async def start_getweather(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Enter address line 1: ")
@@ -148,7 +134,6 @@ async def start_getweather(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 async def receive_add_line_1(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     address_line_1 = update.message.text
     context.user_data['address_line_1'] = address_line_1
-
     await update.message.reply_text(f"Address Line 1 is set to: {address_line_1.title()}")
     await update.message.reply_text("Enter city: ")
     return CITY
@@ -156,25 +141,20 @@ async def receive_add_line_1(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def receive_city(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     city = update.message.text
     context.user_data['city'] = city
-
     await update.message.reply_text(f"City is set to: {city.capitalize()}")
     await update.message.reply_text("Enter state (CA, TX, etc.): ")
-
     return STATE
 
 async def receive_state(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     state = update.message.text
     context.user_data['state'] = state
-
     await update.message.reply_text(f"State is set to: {state.upper()}")
     await update.message.reply_text("Enter zipcode: ")
-
     return ZIPCODE
 
 async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     zipcode = update.message.text
     context.user_data['zipcode'] = zipcode
-
     address_line_1 = context.user_data.get('address_line_1', '')
     city = context.user_data.get('city', '')
     state = context.user_data.get('state', '')
@@ -182,39 +162,33 @@ async def receive_zipcode(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await update.message.reply_text(f"Zipcode is set to: {zipcode}")
 
     format_message = ("__*Here is your entered data*__\n"
-                    f"Address Line 1: {address_line_1.title()}\n"
-                    f"City: {city.capitalize()}\n"
-                    f"State: {state.upper()}\n"
-                    f"Zipcode: {zipcode}\n"
-                    "\n"
-                    "If anything is incorrect, you may correct entry by using /restart\.\n"
-                    "Otherwise, click /proceed to output the weather data in your area\.")
-    await update.message.reply_text(text=format_message, parse_mode="MarkdownV2")
+                      f"Address Line 1: {address_line_1.title()}\n"
+                      f"City: {city.capitalize()}\n"
+                      f"State: {state.upper()}\n"
+                      f"Zipcode: {zipcode}\n"
+                      "\n"
+                      "If anything is incorrect, you may correct entry by using /restart\.\n"
+                      "Otherwise, click Proceed to output the weather data in your area\.")
+    
+    keyboard = [
+        [InlineKeyboardButton("Proceed", callback_data='proceed')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
+    await update.message.reply_text(text=format_message, parse_mode="MarkdownV2", reply_markup=reply_markup)
     return CONFIRM
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Operation cancelled!")
+    if update.message:
+        await update.message.reply_text("Operation cancelled!")
+    elif update.callback_query:
+        await update.callback_query.message.reply_text("Operation cancelled!")
+    context.user_data.clear()
     return ConversationHandler.END
 
-async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Restarting the process. Please enter address line 1:")
-    return ADDRESS_LINE_1
-
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    outro_message_correct = "I hope this bot helped you today 😎, use /getweather to use again."
-    outro_message_incorrect = "I am sorry this bot did not meet your expectations. Please forward the error[s] to @dbdoan_dev so we may prompt fix the issue!"
-
-    if query.data == 'yes_correct':
-        await context.bot.send_message(chat_id=query.message.chat_id, text=f"{outro_message_correct}")
-    elif query.data == 'no_incorrect':
-        await context.bot.send_message(chat_id=query.message.chat_id, text=f"{outro_message_incorrect}")
-        
-
 async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    message = query.message
     address_line_1 = context.user_data.get('address_line_1', '')
     city = context.user_data.get('city', '')
     state = context.user_data.get('state', '')
@@ -224,10 +198,15 @@ async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     formatted_address = quote(user_full_address)
 
     user_coordinates = obtain_coordinates(formatted_address)
+    if not user_coordinates:
+        await message.reply_text("Failed to fetch coordinates data. Please try again later.", parse_mode="MarkdownV2")
+        return ConversationHandler.END
 
-    # Latitude, Longitude
     weather_data = obtain_weather(user_coordinates[1], user_coordinates[0])
-    # print(weather_data)
+    if not weather_data:
+        await message.reply_text("Failed to fetch weather data. Please try again later.", parse_mode="MarkdownV2")
+        return ConversationHandler.END
+
     iso_date_time = weather_data["timelines"]["minutely"][0]["time"]
     converted_date_time = iso_to_mdy(iso_date_time)
     markdown_date_time = escape_markdown_v2(converted_date_time)
@@ -250,7 +229,7 @@ async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        await update.message.reply_photo(photo=response.content, 
+        await message.reply_photo(photo=response.content, 
                                         caption=
                                         f"__*Weather data as of {markdown_date_time} UTC*__\n"
                                             "\n"
@@ -261,17 +240,39 @@ async def proceed(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                                             f"🕶️ UV Index: {user_uv}\n\n\({escape_markdown_v2(extra_uv_info(user_uv))}\)", 
                                             parse_mode="MarkdownV2", reply_markup=reply_markup)
     else:
-        await update.message.reply_text("Failed to fetch coordinates data. Please try again later.", parse_mode="MarkdownV2")
+        await message.reply_text("Failed to fetch coordinates data. Please try again later.", parse_mode="MarkdownV2")
 
+    return await end_conversation(update, context)
+
+async def end_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    logger.info(f"Conversation ended after processing with user data: {context.user_data}")
+    context.user_data.clear()
     return ConversationHandler.END
 
-# ------------------------------------ #
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == 'proceed':
+        await proceed(update, context)
+    elif query.data == 'yes_correct':
+        await context.bot.send_message(chat_id=query.message.chat_id, text="I hope this bot helped you today 😎, use /getweather to use again.")
+        return ConversationHandler.END
+    elif query.data == 'no_incorrect':
+        contact_button = InlineKeyboardButton(text="Contact me on Telegram ❤️", url="https://t.me/dbdoan_dev")
+        reply_markup = InlineKeyboardMarkup([[contact_button]])
+
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text="I am sorry this bot did not meet your expectations. Please forward the error[s] to me so I can promptly fix the issue!",
+            reply_markup=reply_markup
+        )
+        return ConversationHandler.END
+
 # ------------------------------------ #
 if __name__ == '__main__':
-    # Create the Application and pass it your bot's token
     application = ApplicationBuilder().token(TG_BOT_TOKEN).build()
 
-    # Add handlers
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('ping', ping))
     application.add_handler(CommandHandler('contact', contact))
@@ -284,15 +285,12 @@ if __name__ == '__main__':
             CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_city)],
             STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_state)],
             ZIPCODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_zipcode)],
-            CONFIRM: [CommandHandler('restart', restart), CommandHandler('proceed', proceed)]
+            CONFIRM: [CallbackQueryHandler(button_handler)]  
         },
-        fallbacks=[CommandHandler('cancel', cancel), CommandHandler('restart', restart)]
+        fallbacks=[CommandHandler('cancel', cancel), CommandHandler('restart', start_getweather), CommandHandler('getweather', start_getweather)]
     )
 
     application.add_handler(weather_conv_handler)
 
-    # Log bot startup
     logger.info("Bot started")
-
-    # Run the bot
     application.run_polling()
