@@ -1,2 +1,5 @@
-python-dotenv==1.0.1
-python-telegram-bot==21.2
+asyncio
+logging
+requests==<latest_version>
+python-dotenv==<latest_version>
+python-telegram-bot==<latest_version>
