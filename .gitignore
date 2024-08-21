@@ -1,7 +1,4 @@
-test/
-
-__pycache__/
-
-.venv/
-
 geocoding_api_test.py
+__pycache__/
+.venv/
+test/
