@@ -15,4 +15,5 @@ A Telegram bot which outputs weather data in your vicinity using the Tomorrow.io
 <img src="https://i.ibb.co/P9dSSzP/PNG-image-1-A89-DD58-E0-F9-1.png" alt="Preview of bot" width="300" height="auto">
 
 ## Future Additions
-- Replace text commands for /restart and /proceed with actual inline buttons
+~- Replace text commands for /restart and /proceed with actual inline buttons~ ✅
+- Button or command to generate weather data from random location
