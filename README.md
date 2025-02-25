@@ -18,7 +18,7 @@ A Telegram bot which outputs weather data in your vicinity using the Tomorrow.io
 
 ## Preview
 <!-- Resize image to 500px wide -->
-<img src="https://i.ibb.co/P9dSSzP/PNG-image-1-A89-DD58-E0-F9-1.png" alt="Preview of bot" width="300" height="auto">
+<img src="https://i.ibb.co/KppM35pr/example.png" alt="Preview of bot usage." width="300" height="auto">
 
 ## Future Additions
 ~- Replace text commands for /restart and /proceed with actual inline buttons~ ✅
