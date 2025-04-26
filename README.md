@@ -2,7 +2,7 @@
 
 ## Preview
 <!-- Resize image to 500px wide -->
-<img src="https://i.ibb.co/8L8kLZ0D/New-Project.png" alt="Preview of Telegram Weather bot" width="auto" height="auto">
+<img src="https://i.ibb.co/r27vbHNs/tele-Cast-GHPreview.png" alt="Preview of Telegram Weather bot" width="auto" height="auto">
 
 ## About
 A Telegram bot which outputs weather data in your vicinity using the Tomorrow.io and MapBox APIs.
