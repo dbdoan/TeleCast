@@ -117,7 +117,7 @@ def escape_markdown_v2(text: str) -> str:
 
 # Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('Hello! Welcome to Danny\'s Telegram weather bot!\nUse /getweather to get weather information in your area!')
+    await update.message.reply_text('Hello! Welcome to Telecast! Ready to help you dodge those rainy days :D\nUse /getweather to get weather information in your area!')
 
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = await update.message.reply_text("pong!")
