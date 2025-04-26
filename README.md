@@ -5,7 +5,7 @@
 <img src="https://i.ibb.co/r27vbHNs/tele-Cast-GHPreview.png" alt="Preview of Telegram Weather bot" width="auto" height="auto">
 
 ## About
-A Telegram bot which outputs weather data in your vicinity using the Tomorrow.io and MapBox APIs.
+A Telegram bot that delivers localized weather information by leveraging the Tomorrow.io and MapBox APIs. It provides users with accurate, real-time weather data based on their current location.
 
 ## How-to
 1. [Optional / Recommended] Create a virtual environment.
